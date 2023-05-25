@@ -6,17 +6,18 @@ Dale Roberts <dale.o.roberts@gmail.com>
 
 http://www.github.com/daleroberts/tv
 """
-import numpy as np
-import shutil
-import sys
+
 import os
 import re
-
+import shutil
+import sys
 from urllib.request import urlopen, URLError
-from osgeo import gdal
 from uuid import uuid4
 
-gdal.UseExceptions()
+import numpy as np
+from osgeo import gdal
+
+gdal.UseExceptions()  # raise for GDAL exceptions
 
 RESET = bytes('\u001b[0m', 'utf-8')
 QUANT = ' ░▒▓█'
@@ -86,7 +87,7 @@ SAMPLING = {'nearest': gdal.GRIORA_NearestNeighbour,
             'lanczos': gdal.GRIORA_Lanczos,
             'average': gdal.GRIORA_Average,
             'mode': gdal.GRIORA_Mode}
-RE_URL = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+RE_URL = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 NEWLINE = bytes('\n', 'utf-8')
 LVLS256 = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff]
 SNAP256 = [(x+y)/2 for x, y in zip(LVLS256, LVLS256[1:])]
@@ -267,18 +268,42 @@ def main():
     global RESET, QUANT, CHARS, MASKS, SAMPLING, RE_URL, NEWLINE, LVLS256, SNAP256
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-w', type=int, default=shutil.get_terminal_size()[0])
-    parser.add_argument('-b', action='append', type=int)
-    parser.add_argument('-r', choices=SAMPLING.keys(), default='average')
-    parser.add_argument('-stack', action='store_true')
+    parser.add_argument(
+        '-w',
+        type=int,
+        default=shutil.get_terminal_size()[0],
+        help='output width; default: fit to terminal',
+    )
+    parser.add_argument(
+        '-b',
+        action='append',
+        type=int,
+        help='band; repeat to set order e.g. -b 3 -b 2 -b 1',
+    )
+    parser.add_argument(
+        '-r',
+        choices=SAMPLING.keys(),
+        default='average',
+        help='resampling method; default "nearest"',
+    )
+    parser.add_argument(
+        '-stack',
+        action='store_true',
+        help='images to stack as bands e.g. -stack b1.tif b2.tif b3.tif',
+    )
+    parser.add_argument(
+        '-srcwin',
+        nargs=4,
+        metavar=('xoff', 'yoff', 'xsize', 'ysize'),
+        type=int,
+        help='subset of source image to show',
+    )
     parser.add_argument('-urls', action='store_true')
     parser.add_argument('-nofn', action='store_true')
     parser.add_argument('-256', action='store_true')
     parser.add_argument('-slowout', action='store_true')
-    parser.add_argument('img', nargs='+')
     parser.add_argument('-unicodes', type=int, default=len(CHARS))
-    parser.add_argument('-srcwin', nargs=4,
-                        metavar=('xoff', 'yoff', 'xsize', 'ysize'), type=int)
+    parser.add_argument('img', nargs='+')
     kwargs = vars(parser.parse_args())
 
     imgs = kwargs.pop('img')
